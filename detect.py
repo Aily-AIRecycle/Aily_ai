@@ -184,33 +184,19 @@ def run(
                 cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
 
+            # Print time (inference-only)
+
+            # LOGGER.info(f"{s}{'dfs' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
+            if len(det):
+                print(f"Detection time : {dt[1].dt * 1E3:.1f}ms")
+                nc = 'Plastic' if det.tolist()[0][5] > 1.0 else 'can'
+                print(f'Class is : {nc}, Confidence is : {round(det.tolist()[0][4], 3)}')
+
             # subprocess 작업. command-line arguments로 file2.py에 인자전달 가능. (test1.py와 test2.py에 예제 작성)
             if cv2.waitKey(0) & 0xFF == ord('w'):
-                subprocess.run(['python', 'file2.py'])
-            if 0xFF == ord('q'):
+                subprocess.run(['python3','file2.py'])
+            elif 0xFF == ord('q'):
                 break
-
-            # Save results (image with detections)
-            # if save_img:
-            #     if dataset.mode == 'image':
-            #         cv2.imwrite(save_path, im0)
-            #     else:  # 'video' or 'stream'
-            #         if vid_path[i] != save_path:  # new video
-            #             vid_path[i] = save_path
-            #             if isinstance(vid_writer[i], cv2.VideoWriter):
-            #                 vid_writer[i].release()  # release previous video writer
-            #             if vid_cap:  # video
-            #                 fps = vid_cap.get(cv2.CAP_PROP_FPS)
-            #                 w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            #                 h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            #             else:  # stream
-            #                 fps, w, h = 30, im0.shape[1], im0.shape[0]
-            #             save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
-            #             vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-            #         vid_writer[i].write(im0)
-
-        # Print time (inference-only)
-        LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
 
     # Print results
     t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
