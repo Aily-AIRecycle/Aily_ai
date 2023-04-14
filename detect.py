@@ -33,7 +33,7 @@ import os
 import platform
 import sys
 from pathlib import Path
-
+import psutil
 import torch
 
 FILE = Path(__file__).resolve()
@@ -80,6 +80,7 @@ def run(
         dnn=False,  # use OpenCV DNN for ONNX inference
         vid_stride=1,  # video frame-rate stride
 ):
+    
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -185,27 +186,56 @@ def run(
                 cv2.waitKey(1)  # 1 millisecond
 
             # Print time (inference-only)
-
             # LOGGER.info(f"{s}{'dfs' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
-            if len(det):
-                print(f"Detection time : {dt[1].dt * 1E3:.1f}ms")
-                nc = 'Plastic' if det.tolist()[0][5] > 1.0 else 'can'
-                print(f'Class is : {nc}, Confidence is : {round(det.tolist()[0][4], 3)}')
+            # if len(det):
+            #     print(f"Detection time : {dt[1].dt * 1E3:.1f}ms")
+            #     nc = 'Plastic' if det.tolist()[0][5] > 1.0 else 'can'
+            #     print(f'Class is : {nc}, Confidence is : {round(det.tolist()[0][4], 3)}')
 
             # subprocess 작업. command-line arguments로 file2.py에 인자전달 가능. (test1.py와 test2.py에 예제 작성)
-            if cv2.waitKey(0) & 0xFF == ord('w'):
-                subprocess.run(['python3','file2.py'])
-            elif 0xFF == ord('q'):
-                break
+            # if cv2.waitKey(0) & 0xFF == ord('w'):
+            #     subprocess.run(['python3','file2.py'])
+            # elif 0xFF == ord('q'):
+            #     break
+        
+        arr = []
+        for proc in psutil.process_iter(['name','cmdline']):
+            if 'python' in proc.info['name'].lower() and len(proc.info['cmdline']) > 1:    
+                if len(proc.info['cmdline']) > 2:
+                    arr.append(proc.info['cmdline'][1].split('/')[-1]) # 첫번째 파일명 출력
+                    arr.append(proc.info['cmdline'][2].split('/')[-1]) # 두번째 파일명 출력
+                elif len(proc.info['cmdline']) == 2:
+                    arr.append(proc.info['cmdline'][1].split('/')[-1]) # 첫번째 파일명 출력 (파일이 한 개만 출력될 때 )
 
-    # Print results
-    t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
-    LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
-    if save_txt or save_img:
-        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-        LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
-    if update:
-        strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
+        if cv2.waitKey(0) & 'test2.py' in arr:
+            print('good',arr)
+            pass
+            # subprocess.run(['python3','pyserial.py'])    
+        elif cv2.waitKey(0) & 'test2.py' not in arr:
+            print('bad',arr)
+            break
+        # if cv2.waitKey(0) & 0xFF == ord('w'):
+        #     pass
+        #     # subprocess.run(['python3','pyserial.py'])    
+        # elif cv2.waitKey(0) & 0xFF == ord('q'):
+        #     break
+
+# def check_process():
+#     for proc in psutil.process_iter(['name','cmdline']):
+#         if 'python' in proc.info['name'].lower() and len(proc.info['cmdline']) > 1:
+#             filename = proc.info['cmdline'][1]
+#             # print(f"Filename: {filename}") # 경로에 따라 인덱스 변경 필요 
+#     return filename
+
+
+    # # Print results
+    # t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
+    # LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
+    # if save_txt or save_img:
+    #     s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+    #     LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
+    # if update:
+    #     strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
 
 def parse_opt():
