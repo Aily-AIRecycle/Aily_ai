@@ -26,7 +26,7 @@ from utils.torch_utils import select_device, smart_inference_mode
 
 @smart_inference_mode()
 def run(
-        weights=ROOT / 'yolov5s.pt',  # model path or triton URL
+        weights=ROOT / 'last.pt',  # model path or triton URL
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
         imgsz=(640, 640),  # inference size (height, width)
@@ -54,6 +54,7 @@ def run(
         dnn=False,  # use OpenCV DNN for ONNX inference
         vid_stride=1,  # video frame-rate stride
 ):  
+
 
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
@@ -86,13 +87,12 @@ def run(
     else:
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
-
+    num = 0 # 쓰레기 텍스트 파일 촬영 횟수 ----------------------------------------------------------------------------------------
 
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
     for path, im, im0s, vid_cap, s in dataset:
-        subprocess.call(["python3", "pause.py"]) # detect.py 중단
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
             im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
@@ -112,8 +112,9 @@ def run(
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
 
-
         # Process predictions
+        subprocess.call(["python3", "pause.py"]) # detect.py 중단
+        num += 1 # ----------------------------------------------------------------------------------------
         for i, det in enumerate(pred):  # per image
             seen += 1
             if webcam:  # batch_size >= 1
@@ -162,14 +163,42 @@ def run(
                 cv2.imshow(str(p), im0)
                 # cv2.waitKey(1)  # 1 millisecond
                 # break
- 
-        # if cv2.waitKey(0) & 0xFF == ord('w'):
-        #     pass
-        #     # subprocess.run(['python3','pyserial.py'])    
-        # elif 0xFF == ord('q'):
-        #     break    
 
-        
+            # Print time (inference-only)
+            
+            LOGGER.info(f"{s}{'dfs' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms") # 
+            import numpy as np
+            print("여러개의 클래스가 탐지될때 :",det.tolist(),"길이 :",len(det.tolist()))
+            import os
+
+            folder_path = 'User_Data'
+            file_name = f'trash_test{num}.txt'
+            class_arr = det.tolist()
+
+            if len(class_arr) == 0: # 배열이 비어있을 경우(탐지 되지 않았을때)
+                file_contents = 'Not detected'
+            elif len(class_arr) == 1: # 1개의 쓰레기가 탐지되었을 경우 
+                file_contents = str(class_arr[0][5]) # 2.0 == plastic, 1.0 == can
+            else: # 2개 이상의 쓰레기가 탐지되었을 경우
+                print("쓰레기는 한 번에 하나씩만 넣어주세요")
+                file_contents = 'Too many trash entered'
+
+
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            file_path = os.path.join(folder_path, file_name)
+            with open(file_path, 'w') as file:
+                file.write(file_contents)
+                # if file_contents == 1.0: # can
+                #     file.write('can')
+                # elif file_contents == 2.0:
+                #     file.write('plastic')
+
+            print(f"The folder '{folder_path}' and the file '{file_path}' have been created.")
+            # if len(det):
+                # print(f"Detection time : {dt[1].dt * 1E3:.1f}ms")
+                # nc = 'Plastic' if det.tolist()[0][5] > 1.0 else 'can'
+                # print(f'Class is : {nc}, Confidence is : {round(det.tolist()[0][4], 3)}')
 
 
 def parse_opt():
@@ -178,8 +207,8 @@ def parse_opt():
     parser.add_argument('--source', type=str, default=ROOT / '0', help='file/dir/URL/glob/screen/0(webcam)')
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
-    parser.add_argument('--conf-thres', type=float, default=0.7, help='confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.7, help='confidence threshold')# 0.7
+    parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold') # 0.45
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='show results')
@@ -215,6 +244,9 @@ def main(opt):
 if __name__ == '__main__':
     if os.path.isfile('pause.txt'): # pause.txt 파일이 있을 경우 삭제하고 실행
         os.remove('pause.txt')
+    import shutil
+    if os.path.isdir('User_Data'):
+        shutil.rmtree('User_Data')
     opt = parse_opt()
     main(opt)
 

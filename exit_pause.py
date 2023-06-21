@@ -1,4 +1,6 @@
-# detect.py 중단시키는 code2.py 종료(kill)
+"""
+pause.py 실행을 중지시키는 파일.
+"""
 import os
 import signal
 
@@ -11,3 +13,4 @@ with open(file, "r") as f:
 os.kill(pid, signal.SIGTERM)
 if os.path.isfile(file):
   os.remove(file)
+
