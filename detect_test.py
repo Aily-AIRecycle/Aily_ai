@@ -92,6 +92,7 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+    subprocess.call(["python", "pause.py"]) # detect.py 중단
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -113,7 +114,7 @@ def run(
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
 
         # Process predictions
-        subprocess.call(["python3", "pause.py"]) # detect.py 중단
+        # subprocess.call(["python", "pause.py"]) # detect.py 중단
         num += 1 # ----------------------------------------------------------------------------------------
         for i, det in enumerate(pred):  # per image
             seen += 1
@@ -168,7 +169,8 @@ def run(
             
             LOGGER.info(f"{s}{'dfs' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms") # 
             import numpy as np
-            print("여러개의 클래스가 탐지될때 :",det.tolist(),"길이 :",len(det.tolist()))
+            if len(det.tolist()) > 1:
+                print("여러개의 클래스가 탐지됨 :",det.tolist(),"길이 :",len(det.tolist()))
             import os
 
             folder_path = 'User_Data'
@@ -177,11 +179,14 @@ def run(
 
             if len(class_arr) == 0: # 배열이 비어있을 경우(탐지 되지 않았을때)
                 file_contents = 'Not detected'
+                continue
             elif len(class_arr) == 1: # 1개의 쓰레기가 탐지되었을 경우 
                 file_contents = str(class_arr[0][5]) # 2.0 == plastic, 1.0 == can
+                subprocess.call(["python", "pause.py"]) # detect.py 중단
             else: # 2개 이상의 쓰레기가 탐지되었을 경우
                 print("쓰레기는 한 번에 하나씩만 넣어주세요")
                 file_contents = 'Too many trash entered'
+                subprocess.call(["python", "pause.py"]) # detect.py 중단
 
 
             if not os.path.exists(folder_path):
