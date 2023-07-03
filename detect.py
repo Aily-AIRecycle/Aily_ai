@@ -1,32 +1,4 @@
-# YOLOv5 🚀 by Ultralytics, GPL-3.0 license
-"""
-Run YOLOv5 detection inference on images, videos, directories, globs, YouTube, webcam, streams, etc.
 
-Usage - sources:
-    $ python detect.py --weights yolov5s.pt --source 0                               # webcam
-                                                     img.jpg                         # image
-                                                     vid.mp4                         # video
-                                                     screen                          # screenshot
-                                                     path/                           # directory
-                                                     list.txt                        # list of images
-                                                     list.streams                    # list of streams
-                                                     'path/*.jpg'                    # glob
-                                                     'https://youtu.be/Zgi9g1ksQHc'  # YouTube
-                                                     'rtsp://example.com/media.mp4'  # RTSP, RTMP, HTTP stream
-
-Usage - formats:
-    $ python detect.py --weights yolov5s.pt                 # PyTorch
-                                 yolov5s.torchscript        # TorchScript
-                                 yolov5s.onnx               # ONNX Runtime or OpenCV DNN with --dnn
-                                 yolov5s_openvino_model     # OpenVINO
-                                 yolov5s.engine             # TensorRT
-                                 yolov5s.mlmodel            # CoreML (macOS-only)
-                                 yolov5s_saved_model        # TensorFlow SavedModel
-                                 yolov5s.pb                 # TensorFlow GraphDef
-                                 yolov5s.tflite             # TensorFlow Lite
-                                 yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
-                                 yolov5s_paddle_model       # PaddlePaddle
-"""
 import subprocess
 import argparse
 import os
@@ -50,9 +22,11 @@ from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, smart_inference_mode
 
 
+
+
 @smart_inference_mode()
 def run(
-        weights=ROOT / 'yolov5s.pt',  # model path or triton URL
+        weights=ROOT / 'last.pt',  # model path or triton URL
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
         imgsz=(640, 640),  # inference size (height, width)
@@ -79,8 +53,9 @@ def run(
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         vid_stride=1,  # video frame-rate stride
-):
-    
+):  
+
+
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -99,6 +74,7 @@ def run(
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
+    
 
     # Dataloader
     bs = 1  # batch_size
@@ -111,10 +87,12 @@ def run(
     else:
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
+    num = 0 # 쓰레기 텍스트 파일 촬영 횟수 ----------------------------------------------------------------------------------------
 
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+    subprocess.call(["python", "pause.py"]) # detect.py 중단
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -136,6 +114,8 @@ def run(
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
 
         # Process predictions
+        # subprocess.call(["python", "pause.py"]) # detect.py 중단
+        num += 1 # ----------------------------------------------------------------------------------------
         for i, det in enumerate(pred):  # per image
             seen += 1
             if webcam:  # batch_size >= 1
@@ -150,7 +130,7 @@ def run(
             s += '%gx%g ' % im.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
-            annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+            annotator = Annotator(im0, line_width=line_thickness, example=str(names)) #----------------------
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
@@ -176,76 +156,53 @@ def run(
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
             # Stream results
-            im0 = annotator.result()
             if view_img:
                 if platform.system() == 'Linux' and p not in windows:
                     windows.append(p)
                     cv2.namedWindow(str(p), cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
                     cv2.resizeWindow(str(p), im0.shape[1], im0.shape[0])
                 cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
+                # cv2.waitKey(1)  # 1 millisecond
+                # break
 
             # Print time (inference-only)
-            # LOGGER.info(f"{s}{'dfs' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
-            # if len(det):
-            #     print(f"Detection time : {dt[1].dt * 1E3:.1f}ms")
-            #     nc = 'Plastic' if det.tolist()[0][5] > 1.0 else 'can'
-            #     print(f'Class is : {nc}, Confidence is : {round(det.tolist()[0][4], 3)}')
+            
+            LOGGER.info(f"{s}{'dfs' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms") # 
+            import numpy as np
+            if len(det.tolist()) > 1:
+                print("여러개의 클래스가 탐지됨 :",det.tolist(),"길이 :",len(det.tolist()))
+            import os
 
-            # subprocess 작업. command-line arguments로 file2.py에 인자전달 가능. (test1.py와 test2.py에 예제 작성)
-            # if cv2.waitKey(0) & 0xFF == ord('w'):
-            #     subprocess.run(['python3','file2.py'])
-            # elif 0xFF == ord('q'):
-            #     break
-        
-        arr = []
-        for proc in psutil.process_iter(['name','cmdline']):
-            if 'python' in proc.info['name'].lower() and len(proc.info['cmdline']) > 1:    
-                if len(proc.info['cmdline']) > 2:
-                    arr.append(proc.info['cmdline'][1].split('/')[-1]) # 첫번째 파일명 출력
-                    arr.append(proc.info['cmdline'][2].split('/')[-1]) # 두번째 파일명 출력
-                elif len(proc.info['cmdline']) == 2:
-                    arr.append(proc.info['cmdline'][1].split('/')[-1]) # 첫번째 파일명 출력 (파일이 한 개만 출력될 때 )
+            folder_path = 'User_Data'
+            file_name = f'{num}.txt'
+            class_arr = det.tolist()
 
-        if cv2.waitKey(0) & 'test2.py' in arr:
-            print('good',arr)
-            pass
-            # subprocess.run(['python3','pyserial.py'])    
-        elif cv2.waitKey(0) & 'test2.py' not in arr:
-            print('bad',arr)
-            break
-        # if cv2.waitKey(0) & 0xFF == ord('w'):
-        #     pass
-        #     # subprocess.run(['python3','pyserial.py'])    
-        # elif cv2.waitKey(0) & 0xFF == ord('q'):
-        #     break
-
-# def check_process():
-#     for proc in psutil.process_iter(['name','cmdline']):
-#         if 'python' in proc.info['name'].lower() and len(proc.info['cmdline']) > 1:
-#             filename = proc.info['cmdline'][1]
-#             # print(f"Filename: {filename}") # 경로에 따라 인덱스 변경 필요 
-#     return filename
-
-
-    # # Print results
-    # t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
-    # LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
-    # if save_txt or save_img:
-    #     s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-    #     LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
-    # if update:
-    #     strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
-
+            # if len(class_arr) == 0: # 배열이 비어있을 경우(탐지 되지 않았을때)
+            #     file_contents = 'Not detected'
+            #     continue
+            if len(class_arr) == 1: # 1개의 쓰레기가 탐지되었을 경우 
+                file_contents = str(class_arr[0][5]) # 2.0 == plastic, 1.0 == can
+                subprocess.call(["python", "pyserial.py", file_contents])
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+                file_path = os.path.join(folder_path, file_name)
+                with open(file_path, 'w') as file:
+                    file.write(file_contents)
+                print(f"The folder '{folder_path}' and the file '{file_path}' have been created.")
+                subprocess.call(["python", "pause.py"]) # detect.py 중단
+            # else: # 2개 이상의 쓰레기가 탐지되었을 경우
+            #     print("쓰레기는 한 번에 하나씩만 넣어주세요")
+            #     file_contents = 'Too many trash entered'
+            #     continue
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path or triton URL')
-    parser.add_argument('--source', type=str, default=ROOT / 'data/images', help='file/dir/URL/glob/screen/0(webcam)')
+    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'last.pt', help='model path or triton URL')
+    parser.add_argument('--source', type=str, default=ROOT / '0', help='file/dir/URL/glob/screen/0(webcam)')
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
-    parser.add_argument('--conf-thres', type=float, default=0.25, help='confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.7, help='confidence threshold')# 0.7
+    parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold') # 0.45
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='show results')
@@ -279,7 +236,17 @@ def main(opt):
 
 
 if __name__ == '__main__':
+    if os.path.isfile('pause.txt'): # pause.txt 파일이 있을 경우 삭제하고 실행
+        os.remove('pause.txt')
+    import shutil
+    if os.path.isdir('User_Data'):
+        shutil.rmtree('User_Data')
     opt = parse_opt()
     main(opt)
+
+
+
+    
+
 
 
