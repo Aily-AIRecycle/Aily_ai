@@ -5,7 +5,6 @@ import os
 import platform
 import sys
 from pathlib import Path
-import psutil
 import torch
 
 FILE = Path(__file__).resolve()
@@ -23,12 +22,11 @@ from utils.torch_utils import select_device, smart_inference_mode
 
 
 
-
 @smart_inference_mode()
 def run(
         weights=ROOT / 'last.pt',  # model path or triton URL
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
-        data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
+        data=ROOT / 'custom_data/custom_data.yaml',  # dataset.yaml path
         imgsz=(640, 640),  # inference size (height, width)
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
@@ -74,7 +72,7 @@ def run(
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
-    
+
 
     # Dataloader
     bs = 1  # batch_size
@@ -110,11 +108,6 @@ def run(
         with dt[2]:
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
-        # Second-stage classifier (optional)
-        # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-
-        # Process predictions
-        # subprocess.call(["python", "pause.py"]) # detect.py 중단
         num += 1 # ----------------------------------------------------------------------------------------
         for i, det in enumerate(pred):  # per image
             seen += 1
@@ -142,6 +135,7 @@ def run(
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    print(det.tolist())
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
@@ -162,23 +156,14 @@ def run(
                     cv2.namedWindow(str(p), cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
                     cv2.resizeWindow(str(p), im0.shape[1], im0.shape[0])
                 cv2.imshow(str(p), im0)
-                # cv2.waitKey(1)  # 1 millisecond
-                # break
-
-            # Print time (inference-only)
-            
-            import numpy as np
-            if len(det.tolist()) > 1:
-                print("여러개의 클래스가 탐지됨 :",det.tolist(),"길이 :",len(det.tolist()))
-            import os
 
             folder_path = 'User_Data'
             file_name = f'{num}.txt'
             class_arr = det.tolist()
+            if class_arr[0][4] <= 0.85: # 0.85 이하의 정확도는 general waste로 분류
+                class_arr[0][5] = 0.0
+                print(class_arr[0][5])
 
-            # if len(class_arr) == 0: # 배열이 비어있을 경우(탐지 되지 않았을때)
-            #     file_contents = 'Not detected'
-            #     continue
             if len(class_arr) == 1: # 1개의 쓰레기가 탐지되었을 경우 
                 file_contents = str(class_arr[0][5]) # 2.0 == plastic, 1.0 == can
                 subprocess.call(["python", "pyserial.py", file_contents])
@@ -189,16 +174,12 @@ def run(
                     file.write(file_contents)
                 print(f"The folder '{folder_path}' and the file '{file_path}' have been created.")
                 subprocess.call(["python", "pause.py"]) # detect.py 중단
-            # else: # 2개 이상의 쓰레기가 탐지되었을 경우
-            #     print("쓰레기는 한 번에 하나씩만 넣어주세요")
-            #     file_contents = 'Too many trash entered'
-            #     continue
 
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'new_model_test.pt', help='model path or triton URL')
     parser.add_argument('--source', type=str, default=ROOT / '0', help='file/dir/URL/glob/screen/0(webcam)')
-    parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='(optional) dataset.yaml path')
+    parser.add_argument('--data', type=str, default=ROOT / 'custom_dataset/custom_dataset.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
     parser.add_argument('--conf-thres', type=float, default=0.65, help='confidence threshold')# 0.7
     parser.add_argument('--iou-thres', type=float, default=0.25, help='NMS IoU threshold') # 0.45
@@ -241,11 +222,5 @@ if __name__ == '__main__':
     if os.path.isdir('User_Data'):
         shutil.rmtree('User_Data')
     opt = parse_opt()
+
     main(opt)
-
-
-
-    
-
-
-

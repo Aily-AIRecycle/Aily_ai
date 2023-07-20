@@ -5,7 +5,7 @@ import os
 import signal
 
 # Get the process ID of the second code
-file = 'C:/Aily/Aily_ai/pause.txt'
+file = './pause.txt'
 with open(file, "r") as f:
     pid = int(f.readline())
 
