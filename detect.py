@@ -157,8 +157,6 @@ def run(
                     cv2.resizeWindow(str(p), im0.shape[1], im0.shape[0])
                 cv2.imshow(str(p), im0)
 
-            LOGGER.info(f"{s}{'dfs' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
-
             folder_path = 'User_Data'
             file_name = f'{num}.txt'
             class_arr = det.tolist()
@@ -179,12 +177,12 @@ def run(
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'last.pt', help='model path or triton URL')
+    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'new_model_test.pt', help='model path or triton URL')
     parser.add_argument('--source', type=str, default=ROOT / '0', help='file/dir/URL/glob/screen/0(webcam)')
     parser.add_argument('--data', type=str, default=ROOT / 'custom_dataset/custom_dataset.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
-    parser.add_argument('--conf-thres', type=float, default=0.7, help='confidence threshold')# 0.7
-    parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold') # 0.45
+    parser.add_argument('--conf-thres', type=float, default=0.65, help='confidence threshold')# 0.7
+    parser.add_argument('--iou-thres', type=float, default=0.25, help='NMS IoU threshold') # 0.45
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='show results')
