@@ -1,4 +1,3 @@
-
 import subprocess
 import argparse
 import os
@@ -24,7 +23,7 @@ from utils.torch_utils import select_device, smart_inference_mode
 
 @smart_inference_mode()
 def run(
-        weights=ROOT / 'last.pt',  # model path or triton URL
+        weights=ROOT / 'aily_yolov5.pt',  # model path or triton URL
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
         data=ROOT / 'custom_data/custom_data.yaml',  # dataset.yaml path
         imgsz=(640, 640),  # inference size (height, width)
@@ -160,12 +159,13 @@ def run(
             folder_path = 'User_Data'
             file_name = f'{num}.txt'
             class_arr = det.tolist()
-            if class_arr[0][4] <= 0.85: # 0.85 이하의 정확도는 general waste로 분류
-                class_arr[0][5] = 0.0
-                print(class_arr[0][5])
-
+            
+            # 0.0 == can, 2.0 == plastic, 3.0 == coffee, 4.0 == general
             if len(class_arr) == 1: # 1개의 쓰레기가 탐지되었을 경우 
-                file_contents = str(class_arr[0][5]) # 2.0 == plastic, 1.0 == can
+                if class_arr[0][4] <= 0.85: # 0.85 이하의 정확도는 general waste로 분류
+                    class_arr[0][5] = 4.0
+                    print(class_arr[0][5])
+                file_contents = str(class_arr[0][5])
                 subprocess.call(["python", "pyserial.py", file_contents])
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
@@ -177,7 +177,7 @@ def run(
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'new_model_test.pt', help='model path or triton URL')
+    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'aily_yolov5.pt', help='model path or triton URL')
     parser.add_argument('--source', type=str, default=ROOT / '0', help='file/dir/URL/glob/screen/0(webcam)')
     parser.add_argument('--data', type=str, default=ROOT / 'custom_dataset/custom_dataset.yaml', help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
