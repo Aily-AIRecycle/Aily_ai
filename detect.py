@@ -160,10 +160,10 @@ def run(
             file_name = f'{num}.txt'
             class_arr = det.tolist()
             
-            # 0.0 == can, 2.0 == plastic, 3.0 == coffee, 4.0 == general
+            # 0.0 == can, 1.0 == plastic, 2.0 == coffee, 3.0 == general
             if len(class_arr) == 1: # 1개의 쓰레기가 탐지되었을 경우 
                 if class_arr[0][4] <= 0.85: # 0.85 이하의 정확도는 general waste로 분류
-                    class_arr[0][5] = 4.0
+                    class_arr[0][5] = 3.0
                     print(class_arr[0][5])
                 file_contents = str(class_arr[0][5])
                 subprocess.call(["python", "pyserial.py", file_contents])
