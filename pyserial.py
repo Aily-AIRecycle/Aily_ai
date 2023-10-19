@@ -16,13 +16,13 @@ if param == '3.0': # general trash
 elif param == '1.0' or param == '2.0': # plastic trash
     ser2.write('compress\n'.encode()) # compressor run
     ser1.write('2\n'.encode()) # rail run
-    time.sleep(32) # wait for 32 seconds
+    time.sleep(35) # wait for 32 seconds
     ser3.write('start'.encode()) # GMotor start
 
 elif param == '0.0': # can
     ser2.write('compress\n'.encode()) # compressor run
     ser1.write('3\n'.encode()) # rail run
-    time.sleep(64) # wait for 64 seconds
+    time.sleep(67) # wait for 64 seconds
     ser3.write('start'.encode()) # GMotor start
 
 ser1.close()
